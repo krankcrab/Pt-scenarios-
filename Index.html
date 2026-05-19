@@ -1,0 +1,1791 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Paramedic Sim Scenarios — Treasure Coast</title>
+<style>
+@import url('https://fonts.googleapis.com/css2?family=Bebas+Neue&family=Share+Tech+Mono&family=Barlow:ital,wght@0,300;0,400;0,600;0,700;1,400&display=swap');
+
+:root {
+  --red: #D72638;
+  --dark: #080c0f;
+  --panel: #0f1419;
+  --card: #151c24;
+  --border: #1e2a36;
+  --gold: #F5A623;
+  --green: #00e676;
+  --blue: #29b6f6;
+  --text: #d4e0ec;
+  --muted: #607080;
+  --warn: #ff6d00;
+}
+
+* { box-sizing: border-box; margin: 0; padding: 0; }
+
+body {
+  background: var(--dark);
+  color: var(--text);
+  font-family: 'Barlow', sans-serif;
+  font-weight: 400;
+  min-height: 100vh;
+  overflow-x: hidden;
+}
+
+/* scanline overlay */
+body::before {
+  content: '';
+  position: fixed;
+  inset: 0;
+  background: repeating-linear-gradient(
+    0deg,
+    transparent,
+    transparent 2px,
+    rgba(0,0,0,0.08) 2px,
+    rgba(0,0,0,0.08) 4px
+  );
+  pointer-events: none;
+  z-index: 1000;
+}
+
+header {
+  background: var(--panel);
+  border-bottom: 2px solid var(--red);
+  padding: 16px 24px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  position: sticky;
+  top: 0;
+  z-index: 100;
+}
+
+.logo {
+  font-family: 'Bebas Neue', sans-serif;
+  font-size: 1.6rem;
+  letter-spacing: 3px;
+  color: var(--red);
+}
+
+.logo span { color: var(--text); }
+
+.header-right {
+  font-family: 'Share Tech Mono', monospace;
+  font-size: 0.75rem;
+  color: var(--muted);
+  text-align: right;
+}
+
+.status-dot {
+  display: inline-block;
+  width: 8px;
+  height: 8px;
+  background: var(--green);
+  border-radius: 50%;
+  margin-right: 6px;
+  animation: pulse 1.5s infinite;
+}
+
+@keyframes pulse {
+  0%, 100% { opacity: 1; }
+  50% { opacity: 0.3; }
+}
+
+/* MAIN LAYOUT */
+.app { display: flex; height: calc(100vh - 57px); }
+
+/* SIDEBAR */
+.sidebar {
+  width: 280px;
+  min-width: 280px;
+  background: var(--panel);
+  border-right: 1px solid var(--border);
+  overflow-y: auto;
+  padding: 16px;
+}
+
+.sidebar-title {
+  font-family: 'Share Tech Mono', monospace;
+  font-size: 0.7rem;
+  color: var(--muted);
+  text-transform: uppercase;
+  letter-spacing: 2px;
+  margin-bottom: 12px;
+  padding-bottom: 8px;
+  border-bottom: 1px solid var(--border);
+}
+
+.scenario-btn {
+  width: 100%;
+  text-align: left;
+  background: transparent;
+  border: 1px solid var(--border);
+  border-radius: 4px;
+  padding: 12px 14px;
+  margin-bottom: 8px;
+  cursor: pointer;
+  transition: all 0.2s;
+  color: var(--text);
+}
+
+.scenario-btn:hover {
+  border-color: var(--red);
+  background: rgba(215,38,56,0.08);
+}
+
+.scenario-btn.active {
+  border-color: var(--red);
+  background: rgba(215,38,56,0.12);
+}
+
+.scenario-btn .sn {
+  font-family: 'Bebas Neue', sans-serif;
+  font-size: 1rem;
+  letter-spacing: 1px;
+  display: block;
+  color: var(--gold);
+}
+
+.scenario-btn .sd {
+  font-size: 0.78rem;
+  color: var(--muted);
+  margin-top: 2px;
+  font-family: 'Share Tech Mono', monospace;
+}
+
+.tag {
+  display: inline-block;
+  font-family: 'Share Tech Mono', monospace;
+  font-size: 0.62rem;
+  padding: 2px 6px;
+  border-radius: 2px;
+  margin-top: 5px;
+}
+.tag-red { background: rgba(215,38,56,0.25); color: var(--red); }
+.tag-gold { background: rgba(245,166,35,0.2); color: var(--gold); }
+.tag-blue { background: rgba(41,182,246,0.2); color: var(--blue); }
+.tag-green { background: rgba(0,230,118,0.15); color: var(--green); }
+
+/* MAIN PANEL */
+.main { flex: 1; overflow-y: auto; display: flex; flex-direction: column; }
+
+/* DISPATCH BANNER */
+.dispatch {
+  background: linear-gradient(135deg, #1a0a0a 0%, #0f1419 100%);
+  border-bottom: 1px solid var(--border);
+  padding: 20px 28px;
+}
+
+.dispatch-header {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  margin-bottom: 12px;
+}
+
+.dispatch-label {
+  font-family: 'Share Tech Mono', monospace;
+  font-size: 0.7rem;
+  color: var(--red);
+  letter-spacing: 2px;
+  text-transform: uppercase;
+}
+
+.dispatch-text {
+  font-size: 1.05rem;
+  line-height: 1.7;
+  color: var(--text);
+  font-weight: 300;
+}
+
+.dispatch-text strong { color: var(--gold); font-weight: 600; }
+
+/* VITALS STRIP */
+.vitals-strip {
+  display: flex;
+  gap: 0;
+  border-top: 1px solid var(--border);
+  border-bottom: 1px solid var(--border);
+  background: var(--panel);
+  font-family: 'Share Tech Mono', monospace;
+}
+
+.vital {
+  flex: 1;
+  padding: 10px 16px;
+  border-right: 1px solid var(--border);
+  text-align: center;
+}
+
+.vital:last-child { border-right: none; }
+
+.vital-label {
+  font-size: 0.6rem;
+  color: var(--muted);
+  text-transform: uppercase;
+  letter-spacing: 1px;
+  display: block;
+  margin-bottom: 3px;
+}
+
+.vital-value {
+  font-size: 1rem;
+  color: var(--green);
+  font-weight: 600;
+}
+
+.vital-value.warn { color: var(--warn); }
+.vital-value.crit { color: var(--red); animation: pulse 1s infinite; }
+
+/* SCENARIO CONTENT */
+.scenario-content {
+  flex: 1;
+  padding: 24px 28px;
+}
+
+.scene-title {
+  font-family: 'Bebas Neue', sans-serif;
+  font-size: 1.8rem;
+  letter-spacing: 2px;
+  color: var(--text);
+  margin-bottom: 4px;
+}
+
+.scene-sub {
+  font-family: 'Share Tech Mono', monospace;
+  font-size: 0.75rem;
+  color: var(--muted);
+  margin-bottom: 20px;
+}
+
+/* PATIENT CARD */
+.patient-card {
+  background: var(--card);
+  border: 1px solid var(--border);
+  border-left: 4px solid var(--gold);
+  border-radius: 4px;
+  padding: 16px 20px;
+  margin-bottom: 20px;
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 10px;
+}
+
+.patient-info { font-size: 0.88rem; line-height: 1.8; }
+.patient-info strong { color: var(--gold); }
+
+/* SITUATION BOX */
+.situation {
+  background: var(--card);
+  border: 1px solid var(--border);
+  border-radius: 4px;
+  padding: 18px 20px;
+  margin-bottom: 20px;
+  font-size: 0.95rem;
+  line-height: 1.8;
+}
+
+.situation-label {
+  font-family: 'Share Tech Mono', monospace;
+  font-size: 0.65rem;
+  color: var(--blue);
+  text-transform: uppercase;
+  letter-spacing: 2px;
+  margin-bottom: 8px;
+}
+
+/* DECISION POINT */
+.decision-point {
+  background: rgba(215,38,56,0.06);
+  border: 1px solid rgba(215,38,56,0.3);
+  border-radius: 4px;
+  padding: 16px 20px;
+  margin-bottom: 16px;
+}
+
+.decision-label {
+  font-family: 'Bebas Neue', sans-serif;
+  font-size: 1.1rem;
+  letter-spacing: 1px;
+  color: var(--red);
+  margin-bottom: 12px;
+}
+
+.choices {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.choice-btn {
+  background: var(--panel);
+  border: 1px solid var(--border);
+  border-radius: 4px;
+  padding: 12px 16px;
+  color: var(--text);
+  font-family: 'Barlow', sans-serif;
+  font-size: 0.9rem;
+  cursor: pointer;
+  text-align: left;
+  transition: all 0.2s;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.choice-btn:hover {
+  border-color: var(--blue);
+  background: rgba(41,182,246,0.07);
+  transform: translateX(4px);
+}
+
+.choice-letter {
+  font-family: 'Bebas Neue', sans-serif;
+  font-size: 1.1rem;
+  color: var(--gold);
+  min-width: 22px;
+}
+
+/* OUTCOME */
+.outcome {
+  border-radius: 4px;
+  padding: 18px 20px;
+  margin-bottom: 16px;
+  font-size: 0.92rem;
+  line-height: 1.8;
+  animation: fadeIn 0.4s ease;
+}
+
+@keyframes fadeIn {
+  from { opacity: 0; transform: translateY(8px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+
+.outcome.good {
+  background: rgba(0,230,118,0.07);
+  border: 1px solid rgba(0,230,118,0.3);
+}
+
+.outcome.bad {
+  background: rgba(215,38,56,0.07);
+  border: 1px solid rgba(215,38,56,0.4);
+}
+
+.outcome.neutral {
+  background: rgba(245,166,35,0.07);
+  border: 1px solid rgba(245,166,35,0.3);
+}
+
+.outcome-label {
+  font-family: 'Bebas Neue', sans-serif;
+  font-size: 1rem;
+  letter-spacing: 1px;
+  margin-bottom: 8px;
+}
+
+.outcome.good .outcome-label { color: var(--green); }
+.outcome.bad .outcome-label { color: var(--red); }
+.outcome.neutral .outcome-label { color: var(--gold); }
+
+.outcome-vitals {
+  font-family: 'Share Tech Mono', monospace;
+  font-size: 0.78rem;
+  color: var(--muted);
+  margin-top: 10px;
+  padding-top: 10px;
+  border-top: 1px solid var(--border);
+}
+
+/* CRIT FAIL BANNER */
+.crit-fail {
+  background: var(--red);
+  color: white;
+  padding: 12px 20px;
+  border-radius: 4px;
+  font-family: 'Bebas Neue', sans-serif;
+  font-size: 1.2rem;
+  letter-spacing: 2px;
+  margin-bottom: 16px;
+  animation: shake 0.4s;
+}
+
+@keyframes shake {
+  0%, 100% { transform: translateX(0); }
+  25% { transform: translateX(-6px); }
+  75% { transform: translateX(6px); }
+}
+
+/* BUTTONS */
+.btn {
+  display: inline-block;
+  font-family: 'Bebas Neue', sans-serif;
+  font-size: 1rem;
+  letter-spacing: 2px;
+  padding: 10px 24px;
+  border-radius: 3px;
+  border: none;
+  cursor: pointer;
+  transition: all 0.2s;
+  margin-right: 8px;
+  margin-top: 8px;
+}
+
+.btn-red { background: var(--red); color: white; }
+.btn-red:hover { background: #b01e2d; }
+.btn-outline { background: transparent; border: 1px solid var(--border); color: var(--text); }
+.btn-outline:hover { border-color: var(--gold); color: var(--gold); }
+
+/* SCORE */
+.score-board {
+  background: var(--panel);
+  border: 1px solid var(--border);
+  border-radius: 4px;
+  padding: 16px 20px;
+  margin-top: 16px;
+  font-family: 'Share Tech Mono', monospace;
+}
+
+.score-title {
+  font-family: 'Bebas Neue', sans-serif;
+  font-size: 1.1rem;
+  letter-spacing: 1px;
+  color: var(--gold);
+  margin-bottom: 10px;
+}
+
+.score-item {
+  display: flex;
+  justify-content: space-between;
+  font-size: 0.8rem;
+  padding: 4px 0;
+  border-bottom: 1px solid var(--border);
+  color: var(--muted);
+}
+
+.score-item:last-child { border-bottom: none; }
+.score-item span:last-child { color: var(--text); }
+
+/* WELCOME SCREEN */
+.welcome {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  text-align: center;
+  padding: 40px;
+}
+
+.welcome h1 {
+  font-family: 'Bebas Neue', sans-serif;
+  font-size: 3rem;
+  letter-spacing: 4px;
+  color: var(--red);
+  margin-bottom: 8px;
+}
+
+.welcome p {
+  color: var(--muted);
+  font-size: 0.95rem;
+  max-width: 400px;
+  line-height: 1.8;
+  margin-bottom: 24px;
+}
+
+.welcome .mono {
+  font-family: 'Share Tech Mono', monospace;
+  font-size: 0.8rem;
+  color: var(--border);
+}
+
+/* INSTRUCTOR PANEL */
+.instructor-toggle {
+  font-family: 'Share Tech Mono', monospace;
+  font-size: 0.7rem;
+  color: var(--muted);
+  background: transparent;
+  border: 1px solid var(--border);
+  padding: 4px 10px;
+  border-radius: 2px;
+  cursor: pointer;
+  transition: all 0.2s;
+}
+
+.instructor-toggle:hover { border-color: var(--gold); color: var(--gold); }
+
+.instructor-notes {
+  background: rgba(245,166,35,0.05);
+  border: 1px dashed rgba(245,166,35,0.3);
+  border-radius: 4px;
+  padding: 14px 18px;
+  margin-top: 12px;
+  font-size: 0.85rem;
+  color: var(--gold);
+  display: none;
+}
+
+.instructor-notes.visible { display: block; }
+
+.instructor-notes ul { padding-left: 18px; }
+.instructor-notes li { margin: 4px 0; }
+
+/* SCROLLBAR */
+::-webkit-scrollbar { width: 4px; }
+::-webkit-scrollbar-track { background: var(--dark); }
+::-webkit-scrollbar-thumb { background: var(--border); border-radius: 2px; }
+</style>
+</head>
+<body>
+
+<header>
+  <div class="logo">TCMFI <span>SIM LAB</span></div>
+  <div class="header-right">
+    <span class="status-dot"></span>LIVE SCENARIOS<br>
+    Luddy Edition · 2026 Protocols
+  </div>
+</header>
+
+<div class="app">
+  <div class="sidebar">
+    <div class="sidebar-title">Select Scenario</div>
+
+    <button class="scenario-btn" onclick="loadScenario('cardiac_arrest')">
+      <span class="sn">Cardiac Arrest</span>
+      <span class="sd">58M · Unresponsive · Found Down</span>
+      <span class="tag tag-red">V-FIB</span>
+      <span class="tag tag-gold">ACLS</span>
+    </button>
+
+    <button class="scenario-btn" onclick="loadScenario('svt')">
+      <span class="sn">Unstable Tachycardia</span>
+      <span class="sd">44F · Palpitations · Hypotensive</span>
+      <span class="tag tag-gold">CARDIOVERSION</span>
+    </button>
+
+    <button class="scenario-btn" onclick="loadScenario('bradycardia')">
+      <span class="sn">Symptomatic Bradycardia</span>
+      <span class="sd">71M · Syncope · HR 32</span>
+      <span class="tag tag-blue">PACING</span>
+    </button>
+
+    <button class="scenario-btn" onclick="loadScenario('tension_ptx')">
+      <span class="sn">Tension Pneumothorax</span>
+      <span class="sd">29M · MVC · Respiratory Distress</span>
+      <span class="tag tag-red">NEEDLE DECOMPRESSION</span>
+    </button>
+
+    <button class="scenario-btn" onclick="loadScenario('failed_airway')">
+      <span class="sn">Failed Airway</span>
+      <span class="sd">52M · Airway Obstruction · CICV</span>
+      <span class="tag tag-red">NEEDLE CRIC</span>
+    </button>
+
+    <button class="scenario-btn" onclick="loadScenario('delivery')">
+      <span class="sn">Emergency Delivery</span>
+      <span class="sd">26F · G2P1 · Full Term · Active Labor</span>
+      <span class="tag tag-green">OB</span>
+    </button>
+
+    <button class="scenario-btn" onclick="loadScenario('peds_arrest')">
+      <span class="sn">Pediatric Arrest</span>
+      <span class="sd">4M · Drowning · Pulseless</span>
+      <span class="tag tag-red">PALS</span>
+      <span class="tag tag-blue">PEDS</span>
+    </button>
+
+    <button class="scenario-btn" onclick="loadScenario('abnormal_delivery')">
+      <span class="sn">Abnormal Delivery</span>
+      <span class="sd">31F · G1P0 · Breech Presentation</span>
+      <span class="tag tag-red">OB EMERGENCY</span>
+    </button>
+  </div>
+
+  <div class="main" id="main">
+    <div class="welcome">
+      <h1>SIM LAB</h1>
+      <p>Select a scenario from the left panel. Each call adapts based on your team's decisions — treat the patient right and they improve. Make a critical error and find out fast.</p>
+      <p class="mono">// BRANCHING SCENARIOS · LUDDY EDITION PROTOCOLS · ZOLL BIPHASIC</p>
+    </div>
+  </div>
+</div>
+
+<script>
+// ═══════════════════════════════════════════════════════════════
+// SCENARIO DATA
+// ═══════════════════════════════════════════════════════════════
+
+const scenarios = {
+
+cardiac_arrest: {
+  title: "Cardiac Arrest — Unwitnessed",
+  sub: "58M · Found Down · Living Room · No Bystander CPR",
+  dispatch: "Medic 7 respond to <strong>4412 Palmetto Drive</strong> for a <strong>58-year-old male found unresponsive</strong>. Wife states he collapsed watching TV. No CPR in progress. ETA 4 minutes.",
+  patient: {
+    age: "58", sex: "Male", weight: "~95 kg",
+    pmh: "HTN, Hyperlipidemia, Smoker",
+    meds: "Lisinopril, Atorvastatin",
+    allergies: "NKDA"
+  },
+  vitals: { bp: "---/---", hr: "---", rr: "0", spo2: "---", gcs: "3" },
+  situation: "You arrive on scene to find a heavyset male on the living room floor. Wife is screaming. Patient is unresponsive. No visible trauma. Scene is safe.",
+  steps: [
+    {
+      id: "step1",
+      prompt: "You approach the patient. What is your first action?",
+      choices: [
+        { id: "a", text: "BSI/PPE on, check responsiveness, assess carotid pulse and breathing simultaneously for no more than 10 seconds.", next: "step2_good" },
+        { id: "b", text: "Start chest compressions immediately without BSI.", next: "step2_no_ppe" },
+        { id: "c", text: "Ask the wife what happened before touching the patient.", next: "step2_history_first" }
+      ]
+    },
+    {
+      id: "step2_good",
+      outcome: { type: "neutral", label: "CORRECT — PPE ON", text: "BSI in place. You tap his shoulders — no response. You check carotid pulse and breathing simultaneously for 10 seconds. No pulse. No breathing — agonal respirations only. You call time." },
+      prompt: "No pulse, no breathing. What do you do?",
+      choices: [
+        { id: "a", text: "Direct partner to start compressions immediately. Insert OPA, attach BVM. Apply monitor pads. Establish IV access.", next: "step3_good" },
+        { id: "b", text: "Get the monitor on first before starting compressions.", next: "step3_monitor_first" },
+        { id: "c", text: "Start ventilations first before compressions.", next: "step3_vents_first" }
+      ]
+    },
+    {
+      id: "step2_no_ppe",
+      critFail: true,
+      outcome: { type: "bad", label: "CRITICAL FAIL — NO PPE", text: "Failure to take or verbalize appropriate PPE precautions. This is an automatic failure. Always PPE before patient contact." }
+    },
+    {
+      id: "step2_history_first",
+      outcome: { type: "bad", label: "WRONG PRIORITY", text: "History before assessment on an unresponsive patient costs critical time. You lose 45 seconds. When you finally check: no pulse, no breathing. Patient deteriorating." },
+      prompt: "No pulse, no breathing. What do you do NOW?",
+      choices: [
+        { id: "a", text: "Start CPR immediately — compressions first.", next: "step3_good" },
+        { id: "b", text: "Set up the monitor before compressions.", next: "step3_monitor_first" }
+      ]
+    },
+    {
+      id: "step3_monitor_first",
+      outcome: { type: "bad", label: "WRONG — COMPRESSIONS FIRST", text: "Delaying compressions to get the monitor on is a critical error. Every second without compressions = brain damage. Compressions go on IMMEDIATELY. Monitor attachment happens while compressions are ongoing." },
+      prompt: "You start compressions. Two minutes in — what do you have on the monitor?",
+      choices: [
+        { id: "a", text: "Stop CPR briefly for a rhythm check.", next: "step4_vfib" }
+      ]
+    },
+    {
+      id: "step3_vents_first",
+      outcome: { type: "bad", label: "WRONG — COMPRESSIONS BEFORE VENTILATIONS", text: "The algorithm is CAB — Compressions, Airway, Breathing. Ventilations before compressions is outdated. Start compressions first." },
+      prompt: "Partner corrects you. Compressions are going. Two minutes pass. Rhythm check time.",
+      choices: [
+        { id: "a", text: "Stop CPR for rhythm check.", next: "step4_vfib" }
+      ]
+    },
+    {
+      id: "step3_good",
+      outcome: { type: "good", label: "GOOD — HIGH QUALITY CPR INITIATED", text: "Partner on compressions — 100-120/min, 2 inch depth, full recoil. OPA in, BVM attached — breath every 6 seconds. Monitor pads anterior-lateral. IV established. Two minutes of CPR completed." },
+      prompt: "Rhythm check — you see coarse ventricular fibrillation. What do you do?",
+      choices: [
+        { id: "a", text: "Charge to 120J on Zoll. Clear all personnel. Deliver shock. Immediately resume compressions.", next: "step5_good" },
+        { id: "b", text: "Charge to 360J — give it maximum power.", next: "step5_wrong_joules" },
+        { id: "c", text: "Push Epi 1mg first, then shock.", next: "step5_epi_first" },
+        { id: "d", text: "Stop CPR and check a pulse before shocking.", next: "step5_pulse_check" }
+      ]
+    },
+    {
+      id: "step4_vfib",
+      outcome: { type: "neutral", label: "RHYTHM CHECK", text: "Monitor shows coarse ventricular fibrillation." },
+      prompt: "V-Fib on the monitor. What do you do?",
+      choices: [
+        { id: "a", text: "Charge to 120J. Clear all. Shock. Immediately resume compressions.", next: "step5_good" },
+        { id: "b", text: "Charge to 360J.", next: "step5_wrong_joules" },
+        { id: "c", text: "Push Epi first then shock.", next: "step5_epi_first" }
+      ]
+    },
+    {
+      id: "step5_wrong_joules",
+      outcome: { type: "bad", label: "WRONG JOULES", text: "360J is a monophasic dose. Your Zoll is biphasic. Start at 120J for biphasic defibrillation. Using wrong energy can cause myocardial damage." },
+      prompt: "Instructor corrects dose. You charge to 120J, clear, and shock. Immediately back on compressions. Two minutes pass. Rhythm check — still V-fib.",
+      choices: [
+        { id: "a", text: "Charge to 150J. Clear all. Shock. Resume compressions. Push Epi 1mg 1:10,000 IV.", next: "step6_good" }
+      ]
+    },
+    {
+      id: "step5_epi_first",
+      outcome: { type: "bad", label: "WRONG SEQUENCE", text: "Epi does NOT come first in V-fib. The sequence is: CPR → Shock → CPR → Shock → Epi (after 2nd shock). Give the shock first." },
+      prompt: "Instructor corrects sequence. You shock at 120J. Resume compressions. Two minutes pass. Still V-fib.",
+      choices: [
+        { id: "a", text: "Shock 150J. Resume CPR. Push Epi 1mg 1:10,000.", next: "step6_good" }
+      ]
+    },
+    {
+      id: "step5_pulse_check",
+      outcome: { type: "bad", label: "NO PULSE CHECK BEFORE SHOCKING V-FIB", text: "You confirmed V-fib — that IS your rhythm check. Stop CPR only long enough to deliver the shock, then immediately back on compressions. Do not add a separate pulse check." },
+      prompt: "Compressions resume. You shock at 120J. Immediately back on compressions. Two minutes pass. Still V-fib.",
+      choices: [
+        { id: "a", text: "Shock 150J. Resume CPR. Push Epi 1mg 1:10,000.", next: "step6_good" }
+      ]
+    },
+    {
+      id: "step5_good",
+      outcome: { type: "good", label: "EXCELLENT — CORRECT SEQUENCE", text: "Shock delivered at 120J. Compressions immediately resumed — no pause for pulse check. Two minutes of high quality CPR. Rhythm check — still coarse V-fib.", vitals: "Rhythm: Coarse V-fib | No pulse" },
+      prompt: "Still V-fib after 2nd cycle. What drug and dose do you give?",
+      choices: [
+        { id: "a", text: "Epi 1mg 1:10,000 IV push. Shock at 150J. Resume compressions.", next: "step6_good" },
+        { id: "b", text: "Amiodarone 300mg IV push first.", next: "step6_amio_early" },
+        { id: "c", text: "Epi 1mg 1:1,000 IV push.", next: "step6_wrong_epi" }
+      ]
+    },
+    {
+      id: "step6_wrong_epi",
+      critFail: true,
+      outcome: { type: "bad", label: "CRITICAL FAIL — WRONG CONCENTRATION", text: "Epi 1:1,000 is for IM anaphylaxis use. Cardiac arrest requires Epi 1:10,000 IV/IO. Wrong concentration = wrong dose = potential harm. This is a dangerous intervention — critical fail." }
+    },
+    {
+      id: "step6_amio_early",
+      outcome: { type: "bad", label: "WRONG SEQUENCE", text: "Amiodarone comes after the 3rd shock — not the 2nd. Sequence: Shock 1 → Shock 2 + Epi → Shock 3 + Amiodarone 300mg. Push Epi first." },
+      prompt: "Instructor corrects. Epi 1mg 1:10,000 given. Shock 150J. Resume CPR. Two minutes pass. Still V-fib.",
+      choices: [
+        { id: "a", text: "Shock 200J. Resume compressions. Push Amiodarone 300mg IV push.", next: "step7_rosc" }
+      ]
+    },
+    {
+      id: "step6_good",
+      outcome: { type: "good", label: "CORRECT DRUG AND SEQUENCE", text: "Epi 1mg 1:10,000 IV push. Flushed. Shock at 150J. Compressions resumed immediately. Two minutes of CPR. Rhythm check — still V-fib. This is refractory V-fib.", vitals: "Rhythm: V-fib | No pulse | Epi given" },
+      prompt: "Refractory V-fib after 3rd cycle. What do you do?",
+      choices: [
+        { id: "a", text: "Shock 200J. Resume compressions. Push Amiodarone 300mg IV push.", next: "step7_rosc" },
+        { id: "b", text: "Shock 200J. Push Lidocaine 1.5mg/kg instead of Amiodarone.", next: "step7_lido" },
+        { id: "c", text: "Call the code — patient is not converting.", next: "step7_called" }
+      ]
+    },
+    {
+      id: "step7_lido",
+      outcome: { type: "neutral", label: "ACCEPTABLE ALTERNATIVE", text: "Lidocaine 1.5mg/kg is an acceptable alternative antiarrhythmic per Luddy protocols. Amiodarone is preferred first line, but Lidocaine is not wrong. Continuing CPR." },
+      prompt: "Two minutes pass. Rhythm check — narrow complex rhythm at rate of 58. You check a pulse.",
+      choices: [
+        { id: "a", text: "Weak carotid pulse present. This is ROSC. Assess for stability.", next: "step8_rosc" }
+      ]
+    },
+    {
+      id: "step7_called",
+      outcome: { type: "bad", label: "NOT YET — KEEP WORKING", text: "You haven't exhausted your algorithm. You still have antiarrhythmics to give and the patient has received fewer than 5 cycles. Continue working the code." },
+      prompt: "Instructor says keep going. Amiodarone 300mg given. Shock 200J. Two minutes CPR. Rhythm check.",
+      choices: [
+        { id: "a", text: "Narrow complex at rate 58. Check pulse.", next: "step8_rosc" }
+      ]
+    },
+    {
+      id: "step7_rosc",
+      outcome: { type: "good", label: "ROSC ACHIEVED", text: "Shock delivered at 200J. Amiodarone 300mg IV push administered and flushed. Compressions resumed. Two minutes of CPR. Rhythm check — narrow complex sinus bradycardia at rate 58. Checking pulse...", vitals: "Rhythm: Sinus Brady 58 | BP: 74/40 | SpO2: 88%" },
+      prompt: "Weak pulse present — ROSC! Patient is bradycardic and hypotensive. Using C.A.S.H. criteria — is this stable or unstable?",
+      choices: [
+        { id: "a", text: "Unstable — HR 58, BP 74/40, unresponsive. Initiate transcutaneous pacing at rate 70. Consider atropine while setting up.", next: "step8_rosc" },
+        { id: "b", text: "Stable — give atropine 0.5mg IV and monitor.", next: "step8_stable_wrong" },
+        { id: "c", text: "Push another round of Epi for the bradycardia.", next: "step8_epi_brady" }
+      ]
+    },
+    {
+      id: "step8_epi_brady",
+      outcome: { type: "bad", label: "WRONG DRUG FOR POST-ROSC BRADY", text: "Epi drip at 2-10mcg/min is used for refractory bradycardia, not a bolus. A bolus of Epi post-ROSC can cause dangerous hypertension and re-arrest. Treat with atropine or pacing first." },
+      prompt: "Instructor corrects. Patient remains bradycardic and hypotensive. What now?",
+      choices: [
+        { id: "a", text: "Unstable bradycardia — initiate transcutaneous pacing at rate 70.", next: "step8_rosc" }
+      ]
+    },
+    {
+      id: "step8_stable_wrong",
+      outcome: { type: "bad", label: "REASSESS STABILITY — THIS IS UNSTABLE", text: "BP 74/40 is hemodynamic compromise. HR 58 with altered mental status and hypotension meets UNSTABLE criteria by C.A.S.H. Atropine alone is not enough — this patient needs pacing." },
+      prompt: "Atropine 0.5mg given — no change. BP 70/38, HR 52. What NOW?",
+      choices: [
+        { id: "a", text: "Initiate transcutaneous pacing — rate 70, start current at minimum, increase until capture.", next: "step8_rosc" }
+      ]
+    },
+    {
+      id: "step8_rosc",
+      outcome: { type: "good", label: "PATIENT STABILIZING", text: "Transcutaneous pacing initiated. Rate set to 70. Current increased from minimum until electrical capture achieved — pacer spikes with wide QRS and tall T-waves. Mechanical capture confirmed with pulse check. BP improving to 88/54. 12-lead shows inferior STEMI. Notify PCI facility. Initiate transport.", vitals: "Rhythm: Paced at 70 | BP: 88/54 | SpO2: 94% | 12-lead: Inferior STEMI" },
+      prompt: "Patient is paced and improving. What is your final step before transport?",
+      choices: [
+        { id: "a", text: "12-lead transmitted to hospital. Notify PCI facility of incoming STEMI. Establish transport. Consider sedation for pacing discomfort.", next: "step9_end" }
+      ]
+    },
+    {
+      id: "step9_end",
+      outcome: { type: "good", label: "SCENARIO COMPLETE — PATIENT SURVIVED", text: "Excellent work. Patient received high quality CPR, timely defibrillation, correct drug sequence, ROSC achieved, bradycardia treated, STEMI identified, PCI facility notified. Transport in progress.", vitals: "Final: BP 92/60 | HR Paced 70 | SpO2 96% | GCS improving" },
+      end: true
+    }
+  ]
+},
+
+svt: {
+  title: "Unstable Tachycardia",
+  sub: "44F · Palpitations · Chest Pain · Hypotensive",
+  dispatch: "Medic 7 respond to <strong>812 Harbor View Blvd</strong> for a <strong>44-year-old female</strong> with rapid heart rate and chest pain. Patient is conscious and alert.",
+  patient: { age: "44", sex: "Female", weight: "~68 kg", pmh: "No significant PMH", meds: "Oral contraceptives", allergies: "Penicillin" },
+  vitals: { bp: "84/52", hr: "178", rr: "22", spo2: "94%", gcs: "14" },
+  situation: "Patient is sitting on the couch, pale and diaphoretic. She states palpitations started 45 minutes ago suddenly. She has chest pain and feels like she might pass out. Monitor shows narrow complex tachycardia at rate 178 — consistent with SVT.",
+  steps: [
+    {
+      id: "step1",
+      prompt: "Monitor shows SVT at 178. BP 84/52. Patient has chest pain and altered mental status. Stable or unstable?",
+      choices: [
+        { id: "a", text: "Unstable — meets C.A.S.H. criteria (chest pain, altered mental status, hypotension). Prepare for synchronized cardioversion.", next: "step2_unstable_correct" },
+        { id: "b", text: "Stable — try vagal maneuvers and Adenosine first.", next: "step2_vagal_wrong" },
+        { id: "c", text: "Stable — give Diltiazem IV.", next: "step2_dilt_wrong" }
+      ]
+    },
+    {
+      id: "step2_vagal_wrong",
+      outcome: { type: "bad", label: "WRONG — THIS IS UNSTABLE", text: "BP 84/52 + chest pain + near syncope = UNSTABLE by C.A.S.H. Vagal maneuvers and Adenosine are for STABLE SVT. Delaying cardioversion in an unstable patient can lead to decompensation and cardiac arrest." },
+      prompt: "Patient deteriorates — BP now 72/40, more altered. What NOW?",
+      choices: [
+        { id: "a", text: "Unstable — synchronized cardioversion. Sedate and shock at 100J.", next: "step2_unstable_correct" }
+      ]
+    },
+    {
+      id: "step2_dilt_wrong",
+      outcome: { type: "bad", label: "DANGEROUS — DO NOT GIVE DILTIAZEM TO UNSTABLE PATIENT", text: "Diltiazem is a calcium channel blocker and will drop BP further. This patient is already hypotensive at 84/52. This could precipitate cardiac arrest. Unstable tachycardia = cardioversion." },
+      prompt: "Instructor stops you. Patient needs cardioversion. Proceed.",
+      choices: [
+        { id: "a", text: "Synchronized cardioversion at 100J after sedation.", next: "step2_unstable_correct" }
+      ]
+    },
+    {
+      id: "step2_unstable_correct",
+      outcome: { type: "good", label: "CORRECT — UNSTABLE SVT PROTOCOL", text: "Preparing for synchronized cardioversion. IV established. Oxygen on. Monitoring continuously." },
+      prompt: "Before you shock — what MUST you do first?",
+      choices: [
+        { id: "a", text: "Sedate the patient — Midazolam 0.3mg/kg IV (max 2.5mg). She's conscious and this will be painful.", next: "step3_sedate" },
+        { id: "b", text: "Just shock her — no time to sedate.", next: "step3_no_sedate" },
+        { id: "c", text: "Activate sync mode and check energy level before sedating.", next: "step3_sync_first" }
+      ]
+    },
+    {
+      id: "step3_no_sedate",
+      outcome: { type: "neutral", label: "CONSIDER SEDATION", text: "Cardioversion without sedation in a conscious patient is not a critical fail — in a crashing patient you may not have time. But per protocol, if time allows, consider sedation. Patient screams as you shock her at 100J." },
+      prompt: "Shock delivered at 100J. What do you see on the monitor?",
+      choices: [
+        { id: "a", text: "Rhythm check — monitor shows normal sinus rhythm at 88. Check pulse and BP.", next: "step4_converted" }
+      ]
+    },
+    {
+      id: "step3_sync_first",
+      outcome: { type: "bad", label: "SYNC BEFORE SEDATION — SEQUENCE ISSUE", text: "You need to sedate before shocking a conscious patient. Setting up sync mode first wastes time. Sedate, THEN set up sync mode, THEN shock." },
+      prompt: "Instructor corrects. Sedate the patient.",
+      choices: [
+        { id: "a", text: "Midazolam 0.3mg/kg IV. Then activate sync mode. Charge 100J. Clear. Shock.", next: "step3_sedate" }
+      ]
+    },
+    {
+      id: "step3_sedate",
+      outcome: { type: "good", label: "CORRECT — SEDATE THEN CARDIOVERT", text: "Midazolam administered. Patient sedated. Activating sync mode on Zoll — confirming sync markers on QRS complexes. Charging to 100J." },
+      prompt: "Charged to 100J with sync mode active. What do you say before delivering the shock?",
+      choices: [
+        { id: "a", text: "I'm clear, you're clear, everybody clear — visual check — deliver shock.", next: "step4_converted" },
+        { id: "b", text: "Just deliver the shock.", next: "step4_no_clear" }
+      ]
+    },
+    {
+      id: "step4_no_clear",
+      critFail: true,
+      outcome: { type: "bad", label: "CRITICAL FAIL — NO ALL CLEAR", text: "Failure to verbalize and visually confirm 'All clear' before delivering shock is an automatic critical failure. Always: verbalize clear, visually confirm, then shock." }
+    },
+    {
+      id: "step4_converted",
+      outcome: { type: "good", label: "CONVERTED TO NSR", text: "Shock delivered. Monitor shows normal sinus rhythm at 82 bpm. Patient opens eyes. BP improving.", vitals: "Rhythm: NSR 82 | BP: 108/68 | SpO2: 97% | GCS: 15" },
+      prompt: "Patient has converted. What is your immediate next step?",
+      choices: [
+        { id: "a", text: "Reassess vitals and rhythm. Obtain 12-lead ECG. Monitor closely for re-entry. Transport.", next: "step5_end" },
+        { id: "b", text: "Nothing — she converted, you're done.", next: "step5_no_reassess" }
+      ]
+    },
+    {
+      id: "step5_no_reassess",
+      critFail: true,
+      outcome: { type: "bad", label: "CRITICAL FAIL — FAILURE TO REASSESS", text: "Failure to reassess hemodynamic status after delivering a shock is a critical fail. Always reassess pulse, BP, and rhythm after cardioversion." }
+    },
+    {
+      id: "step5_end",
+      outcome: { type: "good", label: "SCENARIO COMPLETE — EXCELLENT WORK", text: "Patient assessed post-conversion. NSR maintained. 12-lead obtained. BP normalized. Transport to ED for workup. Well done — correct identification of unstable SVT, appropriate sedation, correct cardioversion sequence, and post-shock reassessment.", vitals: "Final: NSR 82 | BP 112/70 | SpO2 98% | GCS 15" },
+      end: true
+    }
+  ]
+},
+
+bradycardia: {
+  title: "Symptomatic Bradycardia",
+  sub: "71M · Syncope · HR 32 · Diaphoretic",
+  dispatch: "Medic 7 respond to <strong>233 Seagrape Terrace</strong> for a <strong>71-year-old male</strong> who syncopized. Wife states he's been dizzy all morning.",
+  patient: { age: "71", sex: "Male", weight: "~80 kg", pmh: "CAD, HTN, Pacemaker (not pacing)", meds: "Metoprolol, Aspirin", allergies: "Sulfa" },
+  vitals: { bp: "78/48", hr: "32", rr: "14", spo2: "91%", gcs: "13" },
+  situation: "Patient is pale, diaphoretic, barely responsive. Wife says he passed out twice. Monitor shows complete heart block — P waves with no relationship to QRS, rate 32.",
+  steps: [
+    {
+      id: "step1",
+      prompt: "Complete heart block, HR 32, BP 78/48, near unresponsive. Stable or unstable?",
+      choices: [
+        { id: "a", text: "Unstable — C.A.S.H. criteria met. This needs immediate intervention.", next: "step2_unstable" },
+        { id: "b", text: "Stable — give Atropine 0.5mg and watch.", next: "step2_atropine_only" }
+      ]
+    },
+    {
+      id: "step2_atropine_only",
+      outcome: { type: "neutral", label: "ATROPINE IS FIRST LINE BUT...", text: "Atropine 0.5mg IV given. HR barely changes to 36. BP still 72/44. Complete heart block rarely responds well to Atropine because the block is below the AV node. You need to move to pacing." },
+      prompt: "Atropine failed. BP dropping. What NOW?",
+      choices: [
+        { id: "a", text: "Initiate transcutaneous pacing immediately. Rate 70. Start current at minimum. Increase until capture.", next: "step3_pacing" }
+      ]
+    },
+    {
+      id: "step2_unstable",
+      outcome: { type: "good", label: "CORRECT — UNSTABLE BRADYCARDIA", text: "Atropine 0.5mg IV given as first line while setting up for pacing. HR minimally improved to 36. BP still 78/48. Atropine not effective for complete heart block — proceeding to transcutaneous pacing." },
+      prompt: "Setting up for transcutaneous pacing. What rate and where do you start the current?",
+      choices: [
+        { id: "a", text: "Rate 70. Current at MINIMUM setting. Gradually increase until capture.", next: "step3_pacing" },
+        { id: "b", text: "Rate 70. Current at MAXIMUM — get capture fast.", next: "step3_max_current" },
+        { id: "c", text: "Rate 60 — match his current rhythm and build from there.", next: "step3_rate_60" }
+      ]
+    },
+    {
+      id: "step3_max_current",
+      outcome: { type: "bad", label: "DO NOT START AT MAX CURRENT", text: "Starting at max current causes unnecessary pain and can cause muscle damage. Always start at minimum and titrate UP until capture is achieved. This patient is conscious — starting high will be extremely painful." },
+      prompt: "Instructor corrects. Start at minimum current. Gradually increasing...",
+      choices: [
+        { id: "a", text: "Capture achieved — pacer spikes with wide QRS and tall T-waves. Confirm mechanical capture with pulse.", next: "step3_pacing" }
+      ]
+    },
+    {
+      id: "step3_rate_60",
+      outcome: { type: "neutral", label: "RATE IS ACCEPTABLE BUT NOT OPTIMAL", text: "Rate of 60 is within range but Luddy protocols recommend starting at 70 for symptomatic bradycardia. Increasing current from minimum to achieve capture." },
+      prompt: "Capture achieved at rate 60. Confirm mechanical capture.",
+      choices: [
+        { id: "a", text: "Palpate pulse with each pacer spike — mechanical capture confirmed. Reassess BP.", next: "step3_pacing" }
+      ]
+    },
+    {
+      id: "step3_pacing",
+      outcome: { type: "good", label: "ELECTRICAL CAPTURE ACHIEVED", text: "Pacer spikes followed by wide QRS complexes and tall T-waves at rate 70. Confirming mechanical capture by palpating pulse with each pacer spike — confirmed. BP improving.", vitals: "Rhythm: Paced 70 | BP: 94/58 | SpO2: 95% | GCS improving" },
+      prompt: "Patient is pacing. He's grimacing — he's in pain from the pacing. What do you do?",
+      choices: [
+        { id: "a", text: "Administer sedation/analgesia — Midazolam 0.3mg/kg IV or Fentanyl 1-2mcg/kg IV for comfort.", next: "step4_end" },
+        { id: "b", text: "Nothing — pacing is more important than comfort.", next: "step4_no_comfort" }
+      ]
+    },
+    {
+      id: "step4_no_comfort",
+      outcome: { type: "bad", label: "ADDRESS PATIENT COMFORT", text: "Transcutaneous pacing is painful. Per protocol, consider appropriate sedation and analgesia for conscious patients being paced. Not addressing this is a failure to manage the patient as a competent provider." },
+      prompt: "Instructor prompts. Administer comfort medication.",
+      choices: [
+        { id: "a", text: "Fentanyl 1mcg/kg IV for analgesia. Monitor closely.", next: "step4_end" }
+      ]
+    },
+    {
+      id: "step4_end",
+      outcome: { type: "good", label: "SCENARIO COMPLETE", text: "Transcutaneous pacing effective at rate 70 with mechanical capture. Patient sedated for comfort. BP 96/60. Transporting to hospital for evaluation for permanent pacemaker. Well done — correct identification of unstable bradycardia, appropriate drug sequence, correct pacing technique, and patient comfort addressed.", vitals: "Final: Paced 70 | BP 96/60 | SpO2 96% | GCS 14" },
+      end: true
+    }
+  ]
+},
+
+tension_ptx: {
+  title: "Tension Pneumothorax",
+  sub: "29M · High Speed MVC · Respiratory Distress",
+  dispatch: "Medic 7 respond to <strong>US-1 and 66th Street</strong> for a <strong>high speed MVC</strong>. Single vehicle vs tree. Patient still in vehicle.",
+  patient: { age: "29", sex: "Male", weight: "~85 kg", pmh: "None known", meds: "None", allergies: "Unknown" },
+  vitals: { bp: "84/60", hr: "128", rr: "28", spo2: "82%", gcs: "12" },
+  situation: "Patient is restrained driver with airbag deployment. Chest wall bruising visible. He is extremely agitated, tachycardic, hypotensive. Breath sounds — diminished on LEFT. Trachea deviating to the RIGHT. JVD present.",
+  steps: [
+    {
+      id: "step1",
+      prompt: "Absent left breath sounds, tracheal deviation right, JVD, hypotension, tachycardia, SpO2 82%. What is your field impression?",
+      choices: [
+        { id: "a", text: "Tension pneumothorax — obstructive shock. This requires immediate needle decompression.", next: "step2_correct" },
+        { id: "b", text: "Simple pneumothorax — apply high flow O2 and transport.", next: "step2_simple" },
+        { id: "c", text: "Hemothorax — start large bore IV and fluid resuscitate.", next: "step2_hemo" }
+      ]
+    },
+    {
+      id: "step2_simple",
+      outcome: { type: "bad", label: "WRONG — THIS IS TENSION, NOT SIMPLE", text: "Tracheal deviation + JVD + hemodynamic instability = tension pneumothorax. Simple PTX does not cause tracheal deviation or obstructive shock. This patient will die without needle decompression." },
+      prompt: "Patient deteriorating — BP 72/40, becoming unresponsive. What NOW?",
+      choices: [
+        { id: "a", text: "Needle decompression — 14ga catheter, 2nd ICS midclavicular line LEFT side.", next: "step2_correct" }
+      ]
+    },
+    {
+      id: "step2_hemo",
+      outcome: { type: "bad", label: "WRONG — JVD RULES OUT PURE HEMOTHORAX", text: "Hemothorax causes flat neck veins (hypovolemia). JVD + tracheal deviation = tension PTX. Fluids will not fix obstructive shock. Decompress immediately." },
+      prompt: "After 500cc NS — no improvement. Patient more unstable. What is the actual problem?",
+      choices: [
+        { id: "a", text: "Tension pneumothorax. Needle decompression immediately.", next: "step2_correct" }
+      ]
+    },
+    {
+      id: "step2_correct",
+      outcome: { type: "good", label: "CORRECT FIELD IMPRESSION", text: "Tension pneumothorax identified. Preparing for needle decompression. BSI confirmed." },
+      prompt: "Where do you insert the needle?",
+      choices: [
+        { id: "a", text: "Left side — 2nd intercostal space, midclavicular line. Needle OVER the top of the 3rd rib.", next: "step3_correct_site" },
+        { id: "b", text: "Right side — trachea deviated right so decompress right.", next: "step3_wrong_side" },
+        { id: "c", text: "Left side — 4th intercostal space, midaxillary line.", next: "step3_wrong_site" }
+      ]
+    },
+    {
+      id: "step3_wrong_side",
+      critFail: true,
+      outcome: { type: "bad", label: "CRITICAL FAIL — WRONG SIDE", text: "The trachea deviates AWAY from the tension. Trachea right = tension on the LEFT. You must decompress the LEFT side — the side with absent breath sounds and the side of injury. Decompressing the wrong side could cause a pneumothorax on the healthy side." }
+    },
+    {
+      id: "step3_wrong_site",
+      outcome: { type: "bad", label: "WRONG SITE — CRITICAL FAIL RISK", text: "4th ICS midaxillary is an alternative site used in some protocols. Your Luddy protocol specifies 2nd or 3rd ICS midclavicular line. Using the wrong site is a critical fail on your skills check." },
+      prompt: "Instructor corrects. Identify correct site.",
+      choices: [
+        { id: "a", text: "2nd ICS, midclavicular line, LEFT side. Over the top of the 3rd rib.", next: "step3_correct_site" }
+      ]
+    },
+    {
+      id: "step3_correct_site",
+      outcome: { type: "good", label: "CORRECT SITE IDENTIFIED", text: "Left 2nd ICS midclavicular line. Site cleansed with antiseptic. 14ga catheter ready." },
+      prompt: "You insert the needle. What do you feel/hear that confirms correct placement?",
+      choices: [
+        { id: "a", text: "Rush of air escaping — confirms decompression of tension. Remove needle. Leave catheter in place.", next: "step4_decomp" },
+        { id: "b", text: "No rush of air — pull needle and try again in same spot.", next: "step4_retry" }
+      ]
+    },
+    {
+      id: "step4_retry",
+      outcome: { type: "neutral", label: "ACCEPTABLE — REPOSITION IF NO AIR RUSH", text: "If you don't get air return, verify you're at the correct ICS and try again. The chest wall may be thick. On second attempt — rush of air confirmed." },
+      prompt: "Decompression confirmed on second attempt. Catheter in place, needle disposed. What next?",
+      choices: [
+        { id: "a", text: "Secure catheter. Reassess breath sounds, BP, HR, SpO2 for improvement.", next: "step4_decomp" }
+      ]
+    },
+    {
+      id: "step4_decomp",
+      outcome: { type: "good", label: "DECOMPRESSION SUCCESSFUL", text: "Rush of air. Needle removed. Catheter secured with 4x4 and tape. Reassessing patient.", vitals: "SpO2 improving to 91% | BP 96/64 | HR 108 | Left breath sounds returning" },
+      prompt: "After decompression — what is the CRITICAL next step before anything else?",
+      choices: [
+        { id: "a", text: "Dispose of the needle in the sharps container IMMEDIATELY.", next: "step5_sharps" },
+        { id: "b", text: "Reassess breath sounds first, then dispose of needle.", next: "step5_sharps_late" }
+      ]
+    },
+    {
+      id: "step5_sharps_late",
+      critFail: true,
+      outcome: { type: "bad", label: "CRITICAL FAIL — SHARPS DISPOSAL", text: "Blood-contaminated sharps must be disposed of IMMEDIATELY at the point of use. Holding a used needle while you do other things is a critical fail. Never delay sharps disposal." }
+    },
+    {
+      id: "step5_sharps",
+      outcome: { type: "good", label: "CORRECT — SHARPS IMMEDIATELY DISPOSED", text: "Needle disposed in sharps container at point of use. Catheter secured. Patient reassessed. Condition improving. Spinal precautions maintained throughout — this is an MVC patient.", vitals: "Final: SpO2 94% | BP 102/68 | HR 96 | Breath sounds improving bilaterally" },
+      prompt: "Patient stabilized. What is your transport decision?",
+      choices: [
+        { id: "a", text: "Rapid transport to trauma center. Continue monitoring. Tension can recur — reassess frequently.", next: "step6_end" }
+      ]
+    },
+    {
+      id: "step6_end",
+      outcome: { type: "good", label: "SCENARIO COMPLETE — PATIENT SURVIVED", text: "Excellent work. Tension PTX correctly identified, correct side, correct site, correct technique, sharps disposed properly, patient reassessed and improving. Rapid transport to trauma center.", vitals: "Final: SpO2 95% | BP 108/70 | HR 90 | GCS 14" },
+      end: true
+    }
+  ]
+},
+
+failed_airway: {
+  title: "Failed Airway — Needle Cric",
+  sub: "52M · Airway Obstruction · Cannot Intubate Cannot Ventilate",
+  dispatch: "Medic 7 respond to <strong>901 Ocean Drive</strong> for a <strong>52-year-old male</strong> choking on food. Bystanders unable to clear obstruction.",
+  patient: { age: "52", sex: "Male", weight: "~110 kg", pmh: "Obesity, OSA", meds: "None", allergies: "NKDA" },
+  vitals: { bp: "148/92", hr: "136", rr: "0 effective", spo2: "68% dropping", gcs: "6" },
+  situation: "Morbidly obese male on floor. Bystanders attempted Heimlich — unsuccessful. Large food bolus visible deep in oropharynx. Laryngoscopy attempted x2 — cannot visualize cords. BVM ventilation ineffective — no chest rise. SpO2 dropping. This is a cannot intubate cannot ventilate (CICV) situation.",
+  steps: [
+    {
+      id: "step1",
+      prompt: "Two intubation attempts failed. BVM not working. SpO2 68% and dropping. What is your next action?",
+      choices: [
+        { id: "a", text: "Needle cricothyrotomy — this is a CICV situation. Surgical airway is the only option.", next: "step2_cric" },
+        { id: "b", text: "Try intubation a 3rd time with a different blade.", next: "step2_3rd_attempt" },
+        { id: "c", text: "Insert a supraglottic airway device (King LT / iGel).", next: "step2_sga" }
+      ]
+    },
+    {
+      id: "step2_sga",
+      outcome: { type: "neutral", label: "ACCEPTABLE ATTEMPT BEFORE SURGICAL AIRWAY", text: "Supraglottic airway is a reasonable attempt before needle cric. You insert the iGel — partial airway established. SpO2 improving minimally to 74% but still dropping. SGA not adequately ventilating. Proceeding to surgical airway." },
+      prompt: "SGA not working adequately. SpO2 still falling. What NOW?",
+      choices: [
+        { id: "a", text: "Needle cricothyrotomy. Last resort — no more time.", next: "step2_cric" }
+      ]
+    },
+    {
+      id: "step2_3rd_attempt",
+      outcome: { type: "bad", label: "STOP — CICV MEANS STOP INTUBATING", text: "Two failed attempts = failed airway. A 3rd attempt wastes critical time. SpO2 68% — this patient has 1-2 minutes before irreversible brain damage. Needle cric NOW." },
+      prompt: "SpO2 now 58%. Patient becoming bradycardic. Last chance — what do you do?",
+      choices: [
+        { id: "a", text: "Needle cricothyrotomy immediately.", next: "step2_cric" }
+      ]
+    },
+    {
+      id: "step2_cric",
+      outcome: { type: "good", label: "CORRECT DECISION — SURGICAL AIRWAY", text: "Needle cricothyrotomy indicated. Patient supine, head hyperextended. Equipment assembled: large bore IV catheter, 10-20mL syringe, jet ventilator, oxygen at 50 psi." },
+      prompt: "Locate the cricothyroid membrane. Where is it?",
+      choices: [
+        { id: "a", text: "Between the thyroid cartilage and the cricoid cartilage — the soft depression inferior to the Adam's apple.", next: "step3_landmark" },
+        { id: "b", text: "Between the cricoid cartilage and the tracheal rings below.", next: "step3_wrong_landmark" }
+      ]
+    },
+    {
+      id: "step3_wrong_landmark",
+      critFail: true,
+      outcome: { type: "bad", label: "CRITICAL FAIL — WRONG LANDMARK", text: "Failure to correctly identify the cricothyroid membrane is a critical fail. The cricothyroid membrane is BETWEEN the thyroid and cricoid cartilages. Not below the cricoid." }
+    },
+    {
+      id: "step3_landmark",
+      outcome: { type: "good", label: "LANDMARK IDENTIFIED", text: "Cricothyroid membrane palpated and identified. Site cleansed with antiseptic." },
+      prompt: "Inserting the needle. What angle and direction?",
+      choices: [
+        { id: "a", text: "45 degrees, directed CAUDALLY — toward the lungs/feet.", next: "step4_correct_angle" },
+        { id: "b", text: "90 degrees, straight in.", next: "step4_wrong_angle" },
+        { id: "c", text: "45 degrees, directed CEPHALAD — toward the head.", next: "step4_cephalad" }
+      ]
+    },
+    {
+      id: "step4_cephalad",
+      critFail: true,
+      outcome: { type: "bad", label: "CRITICAL FAIL — WRONG DIRECTION", text: "Directing the needle cephalad (toward the head) will cause the catheter to kink against the posterior tracheal wall and potentially perforate it. The needle MUST be directed caudally — toward the lungs. This is a critical fail." }
+    },
+    {
+      id: "step4_wrong_angle",
+      outcome: { type: "bad", label: "WRONG ANGLE", text: "90 degrees risks passing through the posterior tracheal wall. Insert at 45 degrees angled toward the lungs (caudally). This gives you proper trajectory and reduces risk of posterior wall perforation." },
+      prompt: "Instructor corrects. 45 degrees caudally. Aspirate to confirm...",
+      choices: [
+        { id: "a", text: "Air returns freely — confirmed tracheal placement. Advance catheter, remove needle.", next: "step4_correct_angle" }
+      ]
+    },
+    {
+      id: "step4_correct_angle",
+      outcome: { type: "good", label: "CORRECT PLACEMENT", text: "Needle at 45 degrees caudally. Aspirating syringe — air returns freely. Tracheal placement confirmed. Advancing catheter while stabilizing needle." },
+      prompt: "Catheter advanced. What do you do with the needle RIGHT NOW?",
+      choices: [
+        { id: "a", text: "Remove needle and IMMEDIATELY place in sharps container.", next: "step5_ventilate" },
+        { id: "b", text: "Remove needle and set it aside while I attach the ventilator.", next: "step5_sharps_fail" }
+      ]
+    },
+    {
+      id: "step5_sharps_fail",
+      critFail: true,
+      outcome: { type: "bad", label: "CRITICAL FAIL — SHARPS", text: "Blood-contaminated sharps must be disposed of IMMEDIATELY at the point of use. Setting a used needle down is a critical fail — needlestick risk to yourself and your partner." }
+    },
+    {
+      id: "step5_ventilate",
+      outcome: { type: "good", label: "NEEDLE DISPOSED — VENTILATING", text: "Needle immediately in sharps container. Catheter secured. Jet ventilator attached to oxygen at 50 psi. Beginning ventilation: 1 second on, 2 seconds off." },
+      prompt: "You begin ventilating. How do you confirm adequate ventilation?",
+      choices: [
+        { id: "a", text: "Observe chest rise AND auscultate bilateral breath sounds. Monitor SpO2 for improvement.", next: "step6_end" },
+        { id: "b", text: "Just watch for SpO2 to improve.", next: "step6_incomplete" }
+      ]
+    },
+    {
+      id: "step6_incomplete",
+      outcome: { type: "neutral", label: "INCOMPLETE ASSESSMENT", text: "SpO2 monitoring alone is not sufficient. You must ALSO observe chest rise and auscultate bilaterally to confirm ventilation AND monitor for complications like subcutaneous emphysema." },
+      prompt: "Reassess with full confirmation.",
+      choices: [
+        { id: "a", text: "Chest rise confirmed. Bilateral breath sounds. SpO2 improving. Monitoring for complications.", next: "step6_end" }
+      ]
+    },
+    {
+      id: "step6_end",
+      outcome: { type: "good", label: "SCENARIO COMPLETE — AIRWAY SECURED", text: "Needle cric successful. SpO2 improving from 68% to 88% and rising. Chest rise confirmed. Bilateral breath sounds. Catheter secured. Monitoring for subcutaneous emphysema. Rapid transport initiated. Well done — CICV recognized, correct landmark, correct angle, immediate sharps disposal.", vitals: "Final: SpO2 88% rising | HR 112 | GCS improving" },
+      end: true
+    }
+  ]
+},
+
+delivery: {
+  title: "Emergency Delivery",
+  sub: "26F · G2P1 · 39 Weeks · Crowning",
+  dispatch: "Medic 7 respond to <strong>1847 Cypress Lane</strong> for a <strong>26-year-old female in active labor</strong>. Caller states baby is coming now.",
+  patient: { age: "26", sex: "Female", weight: "~72 kg", pmh: "G2P1 — one prior vaginal delivery", meds: "Prenatal vitamins", allergies: "NKDA" },
+  vitals: { bp: "118/72", hr: "94", rr: "20", spo2: "98%", gcs: "15" },
+  situation: "Patient is on the bathroom floor, 39 weeks gestation. Crowning visible. Contractions every 90 seconds. Urge to push is overwhelming. Amniotic sac ruptured — clear fluid. No meconium noted. This baby is coming now.",
+  steps: [
+    {
+      id: "step1",
+      prompt: "Baby is crowning. What do you do first?",
+      choices: [
+        { id: "a", text: "PPE on — gloves, mask, eye protection. Set up delivery area. Open OB kit.", next: "step2_prep" },
+        { id: "b", text: "Load her in the ambulance and transport.", next: "step2_transport" },
+        { id: "c", text: "Tell her to hold the baby in — wait for hospital.", next: "step2_hold" }
+      ]
+    },
+    {
+      id: "step2_transport",
+      outcome: { type: "bad", label: "CROWNING = DELIVER ON SCENE", text: "When baby is crowning, delivery is imminent. Attempting transport risks uncontrolled delivery in the ambulance. Deliver on scene." },
+      prompt: "Deliver on scene. PPE on. OB kit open. Baby is coming. What's your next action?",
+      choices: [
+        { id: "a", text: "Support the emerging fetal head — gentle counter-pressure. Do NOT pull.", next: "step2_prep" }
+      ]
+    },
+    {
+      id: "step2_hold",
+      outcome: { type: "bad", label: "CANNOT HOLD BABY IN", text: "You cannot and should not tell a patient to 'hold it in' during active delivery. This is not medically possible at crowning stage. Prepare to deliver." },
+      prompt: "Delivery is happening now. PPE on. What do you do?",
+      choices: [
+        { id: "a", text: "Support the emerging fetal head with gentle counter-pressure.", next: "step2_prep" }
+      ]
+    },
+    {
+      id: "step2_prep",
+      outcome: { type: "good", label: "PREPARING FOR DELIVERY", text: "PPE on. OB kit open. Clean pad under patient. Bulb syringe, cord clamps, towels, and newborn blanket ready. Head is crowning." },
+      prompt: "Head delivers. What do you check for IMMEDIATELY?",
+      choices: [
+        { id: "a", text: "Check for nuchal cord — feel around the baby's neck for the umbilical cord.", next: "step3_nuchal" },
+        { id: "b", text: "Pull on the head to deliver the body quickly.", next: "step3_pull" },
+        { id: "c", text: "Suction the airway immediately with bulb syringe.", next: "step3_suction" }
+      ]
+    },
+    {
+      id: "step3_pull",
+      critFail: true,
+      outcome: { type: "bad", label: "CRITICAL FAIL — NEVER PULL ON THE HEAD", text: "Pulling on the head can cause cervical spine injury and nerve damage (Erb's palsy). NEVER pull. Support and guide — let the uterus do the work. This is a dangerous intervention — critical fail." }
+    },
+    {
+      id: "step3_suction",
+      outcome: { type: "neutral", label: "SUCTION — BUT CHECK NUCHAL CORD FIRST", text: "Suctioning is important but check for nuchal cord FIRST before doing anything else after head delivery. If there's a cord around the neck and you don't address it, the baby cannot deliver." },
+      prompt: "Check for nuchal cord first.",
+      choices: [
+        { id: "a", text: "Feeling around neck — nuchal cord present. Cord is loose enough to slip over the head.", next: "step3_nuchal" }
+      ]
+    },
+    {
+      id: "step3_nuchal",
+      outcome: { type: "good", label: "CHECKING FOR NUCHAL CORD", text: "Feeling around baby's neck — nuchal cord present. Cord is loose." },
+      prompt: "Nuchal cord present. What do you do?",
+      choices: [
+        { id: "a", text: "Slip the cord gently over the baby's head and continue delivery.", next: "step4_deliver" },
+        { id: "b", text: "Clamp and cut the cord immediately.", next: "step4_clamp_cut" },
+        { id: "c", text: "Ignore it — it will work itself out.", next: "step4_ignore_cord" }
+      ]
+    },
+    {
+      id: "step4_ignore_cord",
+      critFail: true,
+      outcome: { type: "bad", label: "CRITICAL FAIL — FAILURE TO MANAGE NUCHAL CORD", text: "Failure to identify and manage a nuchal cord is a critical fail. An unmanaged nuchal cord can strangle the baby during delivery or cause avulsion of the cord." }
+    },
+    {
+      id: "step4_clamp_cut",
+      outcome: { type: "neutral", label: "CLAMP AND CUT — ONLY IF CORD IS TIGHT", text: "Clamp and cut is for a tight nuchal cord that cannot be slipped over the head. If the cord is loose, slipping it over is preferred. Since the cord was loose, slipping was the better option — but clamp and cut is not a critical fail here." },
+      prompt: "Cord managed. Continue delivery.",
+      choices: [
+        { id: "a", text: "Deliver anterior shoulder, then posterior shoulder, then body.", next: "step4_deliver" }
+      ]
+    },
+    {
+      id: "step4_deliver",
+      outcome: { type: "good", label: "CORD MANAGED — CONTINUING DELIVERY", text: "Cord slipped over head. Anterior shoulder delivered first, then posterior, then remainder of body. Baby delivered. Note time of birth." },
+      prompt: "Baby delivered. Baby is limp, blue, not crying. What do you do in the FIRST 30 seconds?",
+      choices: [
+        { id: "a", text: "Warm, dry, and stimulate. Clear airway if needed. Wrap to prevent hypothermia.", next: "step5_newborn" },
+        { id: "b", text: "Clamp and cut the cord first, then assess baby.", next: "step5_cord_first" },
+        { id: "c", text: "Start chest compressions immediately.", next: "step5_cpr_immediate" }
+      ]
+    },
+    {
+      id: "step5_cord_first",
+      outcome: { type: "neutral", label: "CORD CUTTING IS NOT FIRST PRIORITY", text: "In the first 30 seconds, warm, dry, and stimulate is the priority. Cord clamping comes at 30-60 seconds after birth. Assess before you cut." },
+      prompt: "Warm, dry, stimulate. Baby weakly crying. HR assessed by palpating cord — about 90 bpm.",
+      choices: [
+        { id: "a", text: "HR <100 — provide PPV. Monitor SpO2. Clamp and cut cord.", next: "step5_newborn" }
+      ]
+    },
+    {
+      id: "step5_cpr_immediate",
+      outcome: { type: "bad", label: "NOT YET — WARM AND STIMULATE FIRST", text: "The neonatal resuscitation sequence is: Warm → Dry → Stimulate → Assess HR. CPR is not indicated until HR remains below 60 after PPV and oxygenation. A limp blue baby at birth needs stimulation first — many will respond." },
+      prompt: "After warming and stimulating — baby weakly crying. HR about 90 bpm.",
+      choices: [
+        { id: "a", text: "HR <100 — provide PPV. Monitor SpO2. Clamp cord.", next: "step5_newborn" }
+      ]
+    },
+    {
+      id: "step5_newborn",
+      outcome: { type: "good", label: "CORRECT NEWBORN CARE SEQUENCE", text: "Warmed, dried, stimulated. Airway cleared. Wrapped in blanket. HR assessed — 90 bpm. Providing PPV. SpO2 probe on right hand. Cord clamped and cut.", vitals: "Newborn HR: 90 → improving | SpO2 probe placed | PPV ongoing" },
+      prompt: "At 1 minute — APGAR score. HR now 108, some flexion, grimacing, weak cry, pink body blue extremities. What is the APGAR score?",
+      choices: [
+        { id: "a", text: "APGAR 7 — HR 2, Grimace 1, Activity 1, Respirations 1, Appearance 2.", next: "step6_end" },
+        { id: "b", text: "APGAR 5 — baby needs more resuscitation.", next: "step6_apgar_wrong" },
+        { id: "c", text: "APGAR 10 — baby is perfect.", next: "step6_apgar_10" }
+      ]
+    },
+    {
+      id: "step6_apgar_10",
+      outcome: { type: "bad", label: "WRONG — APGAR IS NOT 10", text: "APGAR 10 means pink all over (not blue extremities), strong cry (this baby has a weak cry), and active motion (some flexion). Score is 7, not 10. Blue extremities subtract 1 point. Weak cry subtracts 1 point. Some flexion subtracts 1 point." },
+      prompt: "Correct score is 7. Continue monitoring.",
+      choices: [
+        { id: "a", text: "APGAR 7. Continue monitoring. 5-minute APGAR next.", next: "step6_end" }
+      ]
+    },
+    {
+      id: "step6_apgar_wrong",
+      outcome: { type: "neutral", label: "RECOUNT YOUR APGAR", text: "HR >100=2, Grimace=1, Some flexion=1, Weak cry=1, Pink body blue extremities=1. Total = 6-7. Recount: Appearance 1 (blue extremities), Pulse 2 (>100), Grimace 1, Activity 1, Respirations 1 = 6. Close — continue monitoring." },
+      prompt: "Continue care. 5-minute APGAR next.",
+      choices: [
+        { id: "a", text: "5-minute APGAR: baby now pink, strong cry, HR 130, active. APGAR 9. Mom and baby stable. Transport.", next: "step6_end" }
+      ]
+    },
+    {
+      id: "step6_end",
+      outcome: { type: "good", label: "SCENARIO COMPLETE — MOM AND BABY DOING WELL", text: "Excellent work. PPE on, safe delivery, nuchal cord identified and managed, correct newborn resuscitation sequence, APGAR scored, cord clamped. 5-minute APGAR improving. Mom stable. Transport to hospital.", vitals: "Mom: BP 118/72 stable | Baby: HR 130, SpO2 95%, improving APGAR" },
+      end: true
+    }
+  ]
+},
+
+peds_arrest: {
+  title: "Pediatric Arrest — Drowning",
+  sub: "4-Year-Old Male · Pool Submersion · Pulseless",
+  dispatch: "Medic 7 respond to <strong>5501 Coral Pine Way</strong> for a <strong>4-year-old male found unresponsive in the pool</strong>. Parents performing CPR.",
+  patient: { age: "4 years", sex: "Male", weight: "~16 kg (per Broselow)", pmh: "None", meds: "None", allergies: "Unknown" },
+  vitals: { bp: "---/---", hr: "---", rr: "0", spo2: "---", gcs: "3" },
+  situation: "4-year-old found at the bottom of the pool, estimated 5-7 minute submersion. Parents pulled him out and started CPR. When you arrive, he is pulseless and apneic. Skin mottled, lips blue.",
+  steps: [
+    {
+      id: "step1",
+      prompt: "Child is pulseless and apneic. What is your FIRST priority in pediatric arrest?",
+      choices: [
+        { id: "a", text: "Airway and oxygenation FIRST — most peds arrests are respiratory in origin. BVM ventilations with high flow O2. Then compressions.", next: "step2_airway" },
+        { id: "b", text: "Compressions first — same as adult CPR.", next: "step2_compress" },
+        { id: "c", text: "Get the monitor on first to identify the rhythm.", next: "step2_monitor" }
+      ]
+    },
+    {
+      id: "step2_monitor",
+      outcome: { type: "bad", label: "WRONG PRIORITY", text: "Monitor comes after compressions and airway in a pulseless child. Establishing rhythm identification delays treatment. CPR first — monitor while CPR is ongoing." },
+      prompt: "CPR started. What compression to ventilation ratio for pediatric 2-rescuer CPR?",
+      choices: [
+        { id: "a", text: "15:2 — two rescuer pediatric ratio.", next: "step2_airway" }
+      ]
+    },
+    {
+      id: "step2_compress",
+      outcome: { type: "neutral", label: "COMPRESSIONS FIRST IS ACCEPTABLE BUT...", text: "For adults, compressions first is correct. For pediatric patients — especially drowning — the arrest is respiratory in origin. Early oxygenation is critical. Ventilations + compressions together immediately is the goal." },
+      prompt: "Good — compressions and ventilations simultaneously. What is the PEDS ratio with 2 rescuers?",
+      choices: [
+        { id: "a", text: "15:2 — two rescuer pediatric CPR ratio.", next: "step2_airway" }
+      ]
+    },
+    {
+      id: "step2_airway",
+      outcome: { type: "good", label: "AIRWAY PRIORITY IN PEDS CORRECT", text: "BVM ventilations with high flow O2 initiated. 15:2 ratio with 2 rescuers. Compressions 100-120/min at 1/3 AP chest depth. OPA inserted." },
+      prompt: "Monitor on — rhythm shows fine ventricular fibrillation. What now?",
+      choices: [
+        { id: "a", text: "Shockable rhythm — charge and shock at 2 J/kg. 16kg x 2 = 32J. Resume CPR immediately.", next: "step3_shock" },
+        { id: "b", text: "Shock at 120J — same as adult.", next: "step3_adult_joules" },
+        { id: "c", text: "V-fib in a child is rare — confirm rhythm before shocking.", next: "step3_shock" }
+      ]
+    },
+    {
+      id: "step3_adult_joules",
+      critFail: true,
+      outcome: { type: "bad", label: "CRITICAL FAIL — WRONG DOSE", text: "Adult joules for a pediatric patient is a dangerous intervention. Pediatric defibrillation is weight-based: 2 J/kg for first shock. This child is 16kg — dose is 32J. Using adult energy on a child can cause severe myocardial damage." }
+    },
+    {
+      id: "step3_shock",
+      outcome: { type: "good", label: "CORRECT PEDIATRIC DEFIBRILLATION", text: "Shocking at 2 J/kg — 32J for this 16kg child. Clear. Shock delivered. Immediately resume CPR. Two minutes of CPR." },
+      prompt: "Two minutes pass. Rhythm check — still V-fib. What do you do?",
+      choices: [
+        { id: "a", text: "Shock at 4 J/kg (64J). Resume CPR. Establish IO access. Push Epi 1:10,000 — 0.01mg/kg = 0.16mg IO.", next: "step4_epi" },
+        { id: "b", text: "Push Amiodarone 300mg IV — same as adult.", next: "step4_amio_adult" },
+        { id: "c", text: "Shock at 4 J/kg. Push Epi 1:1,000 IM.", next: "step4_epi_wrong" }
+      ]
+    },
+    {
+      id: "step4_amio_adult",
+      critFail: true,
+      outcome: { type: "bad", label: "CRITICAL FAIL — WRONG DOSE", text: "Adult Amiodarone 300mg for a 16kg child is a massive overdose. Pediatric Amiodarone is 5mg/kg IV/IO. For this child: 5 x 16 = 80mg IV push. Always use weight-based dosing — reference Broselow tape." }
+    },
+    {
+      id: "step4_epi_wrong",
+      outcome: { type: "bad", label: "WRONG CONCENTRATION AND ROUTE", text: "Epi 1:1,000 IM is for anaphylaxis, not cardiac arrest. Cardiac arrest requires Epi 1:10,000 IV/IO at 0.01mg/kg. Also — IO access is faster and preferred in pediatric arrest when IV is difficult." },
+      prompt: "Instructor corrects. IO established. Correct Epi dose?",
+      choices: [
+        { id: "a", text: "Epi 1:10,000 — 0.01mg/kg = 0.16mg IO push.", next: "step4_epi" }
+      ]
+    },
+    {
+      id: "step4_epi",
+      outcome: { type: "good", label: "CORRECT PEDIATRIC DRUG DOSING", text: "IO established. Epi 1:10,000 0.01mg/kg = 0.16mg IO. Flushed. Shock 4 J/kg = 64J. Compressions resumed immediately. Two minutes CPR.", vitals: "Ongoing CPR | Rhythm: V-fib | Epi given" },
+      prompt: "Two minutes pass. Rhythm check — still V-fib. Third shock cycle. What antiarrhythmic do you give?",
+      choices: [
+        { id: "a", text: "Amiodarone 5mg/kg IO push = 80mg for this 16kg child.", next: "step5_rosc" },
+        { id: "b", text: "Lidocaine 1mg/kg IO = 16mg.", next: "step5_lido" },
+        { id: "c", text: "Amiodarone 300mg — same as adult.", next: "step5_amio_wrong" }
+      ]
+    },
+    {
+      id: "step5_amio_wrong",
+      critFail: true,
+      outcome: { type: "bad", label: "CRITICAL FAIL — WRONG DOSE AGAIN", text: "300mg Amiodarone in a 16kg child is a dangerous overdose. The dose is 5mg/kg = 80mg. This is a critical fail for using an inappropriate intervention." }
+    },
+    {
+      id: "step5_lido",
+      outcome: { type: "neutral", label: "ACCEPTABLE ALTERNATIVE", text: "Lidocaine 1mg/kg is an acceptable alternative per Luddy pediatric protocols. 1mg/kg x 16kg = 16mg IO. Continuing." },
+      prompt: "Lidocaine given. Shock 4 J/kg. Resume CPR. Two minutes. Rhythm check.",
+      choices: [
+        { id: "a", text: "Narrow complex rhythm. Check pulse.", next: "step5_rosc" }
+      ]
+    },
+    {
+      id: "step5_rosc",
+      outcome: { type: "good", label: "ROSC IN PEDIATRIC PATIENT", text: "Amiodarone 5mg/kg = 80mg IO. Shock 4 J/kg. Resume CPR. Two minutes. Rhythm check — narrow complex sinus tachycardia. Checking pulse...", vitals: "Rhythm: Sinus Tach 140 | Weak pulse | SpO2 78% | GCS 3" },
+      prompt: "Weak pulse — ROSC! Child is still unresponsive. SpO2 78%. What now?",
+      choices: [
+        { id: "a", text: "Intubate for definitive airway. Optimize oxygenation to SpO2 94-99%. Establish temperature management. Transport to pediatric trauma center.", next: "step6_end" },
+        { id: "b", text: "Maintain BVM ventilation. SpO2 will come up on its own.", next: "step6_bvm_only" }
+      ]
+    },
+    {
+      id: "step6_bvm_only",
+      outcome: { type: "neutral", label: "BVM IS ACCEPTABLE SHORT TERM", text: "BVM ventilation is acceptable, especially short term. However, for a post-arrest pediatric patient with SpO2 78%, definitive airway management and transport to pediatric center is the priority." },
+      prompt: "SpO2 improving to 86%. Transport initiated.",
+      choices: [
+        { id: "a", text: "Continue monitoring. Transport to pediatric capable facility.", next: "step6_end" }
+      ]
+    },
+    {
+      id: "step6_end",
+      outcome: { type: "good", label: "SCENARIO COMPLETE", text: "Outstanding work under pressure. Correct pediatric CPR ratio, correct weight-based defibrillation (2J/kg then 4J/kg), correct Epi dose (0.01mg/kg), correct Amiodarone dose (5mg/kg), ROSC achieved. Transporting to pediatric center. Remember: most peds arrests are preventable — this one was drowning.", vitals: "Final: SpO2 91% | HR 140 | BP 72/44 | GCS 4" },
+      end: true
+    }
+  ]
+},
+
+abnormal_delivery: {
+  title: "Abnormal Delivery — Breech",
+  sub: "31F · G1P0 · Full Term · Breech Presentation",
+  dispatch: "Medic 7 respond to <strong>2244 Mangrove Court</strong> for a <strong>31-year-old female in labor</strong>. First pregnancy. Contractions every 2 minutes.",
+  patient: { age: "31", sex: "Female", weight: "~78 kg", pmh: "G1P0, no complications identified in prenatal", meds: "Prenatal vitamins", allergies: "NKDA" },
+  vitals: { bp: "124/78", hr: "102", rr: "22", spo2: "97%", gcs: "15" },
+  situation: "Patient is on her bed, in active labor. Contractions every 90 seconds. She is pushing. You look — and you see a foot presenting at the perineum. This is NOT the head. This is a breech presentation.",
+  steps: [
+    {
+      id: "step1",
+      prompt: "A FOOT is presenting — not the head. What is your immediate action?",
+      choices: [
+        { id: "a", text: "Recognize breech presentation. Do NOT attempt to push foot back. Support the presenting part. Initiate RAPID TRANSPORT. This is an OB emergency.", next: "step2_correct" },
+        { id: "b", text: "Tell her to push harder — get the baby out fast.", next: "step2_push" },
+        { id: "c", text: "Try to reposition the baby internally.", next: "step2_reposition" }
+      ]
+    },
+    {
+      id: "step2_reposition",
+      critFail: true,
+      outcome: { type: "bad", label: "CRITICAL FAIL — DANGEROUS INTERVENTION", text: "Attempting internal version (repositioning) in the field is extremely dangerous and outside paramedic scope. This can cause uterine rupture, placental abruption, or fetal injury. This is a critical fail — dangerous intervention." }
+    },
+    {
+      id: "step2_push",
+      outcome: { type: "bad", label: "WRONG — DO NOT PUSH HARDER", text: "Pushing harder with a foot presentation can cause cord prolapse, entrapment of the head, and fetal death. You must manage this abnormal presentation correctly. Support the presenting part. Rapid transport." },
+      prompt: "Instructor stops you. Breech presentation — what is the correct management?",
+      choices: [
+        { id: "a", text: "Support presenting part. Initiate rapid transport. If body delivers, allow it — manage head last.", next: "step2_correct" }
+      ]
+    },
+    {
+      id: "step2_correct",
+      outcome: { type: "good", label: "CORRECT — BREECH RECOGNIZED", text: "Breech presentation identified and verbalized. Rapid transport initiated. Supporting the presenting foot/leg. Body is delivering despite attempts to manage — this baby is coming regardless." },
+      prompt: "Legs and body deliver. Head is NOT delivering. Baby is hanging, not breathing. What do you do?",
+      choices: [
+        { id: "a", text: "Insert gloved hand alongside baby's face to create an airway space and relieve pressure on the umbilical cord. Continue transport.", next: "step3_airway_space" },
+        { id: "b", text: "Pull the baby out by the body.", next: "step3_pull" },
+        { id: "c", text: "Cut the umbilical cord — baby needs to be freed.", next: "step3_cut_cord" }
+      ]
+    },
+    {
+      id: "step3_pull",
+      critFail: true,
+      outcome: { type: "bad", label: "CRITICAL FAIL — NEVER PULL ON THE BODY", text: "Pulling on the baby's body during a breech delivery can fracture the clavicle, dislocate the hip, or cause spinal injury. Never pull. Create airway space with your hand and transport immediately." }
+    },
+    {
+      id: "step3_cut_cord",
+      outcome: { type: "bad", label: "DO NOT CUT CORD YET", text: "Cutting the cord before the head delivers will cut off the baby's only oxygen supply. Do NOT cut. Insert gloved hand to create airway space and maintain cord circulation. Transport immediately." },
+      prompt: "Instructor corrects. Insert gloved hand for airway space.",
+      choices: [
+        { id: "a", text: "Gloved hand alongside baby's face — airway space created. Cord circulation maintained. Transporting.", next: "step3_airway_space" }
+      ]
+    },
+    {
+      id: "step3_airway_space",
+      outcome: { type: "good", label: "CORRECT MANAGEMENT", text: "Gloved hand alongside baby's face creates airway space and relieves umbilical cord compression. Baby maintained in this position during transport. En route to hospital.", vitals: "Mom: BP 130/82 | HR 118 | OB team alerted | ETA 6 min" },
+      prompt: "En route — head delivers in the ambulance. Baby is delivered. He is limp and blue. What is your newborn care sequence in the first 30 seconds?",
+      choices: [
+        { id: "a", text: "Warm, dry, stimulate. Clear airway. Wrap to prevent hypothermia. Assess HR.", next: "step4_newborn" },
+        { id: "b", text: "Clamp and cut cord immediately.", next: "step4_cord_first" }
+      ]
+    },
+    {
+      id: "step4_cord_first",
+      outcome: { type: "neutral", label: "WARM AND STIMULATE BEFORE CORD CUTTING", text: "Cord cutting comes at 30-60 seconds. First 30 seconds = warm, dry, stimulate, clear airway, assess. Cord cutting is not the first priority." },
+      prompt: "After warming and stimulating — HR 80 bpm, not crying, gasping.",
+      choices: [
+        { id: "a", text: "HR <100 with abnormal breathing — provide PPV. Monitor SpO2. Clamp and cut cord.", next: "step4_newborn" }
+      ]
+    },
+    {
+      id: "step4_newborn",
+      outcome: { type: "good", label: "CORRECT NEWBORN SEQUENCE", text: "Warmed, dried, stimulated. Airway cleared. HR assessed — 80 bpm. Gasping. PPV initiated. SpO2 probe on right hand. Cord clamped and cut.", vitals: "Newborn: HR 80 | SpO2 probe placed | PPV ongoing | Gasping" },
+      prompt: "At 1 minute — HR still 82, gasping only, no improvement with PPV. What do you do?",
+      choices: [
+        { id: "a", text: "Take ventilation corrective steps — reposition airway, check seal, increase pressure. Continue PPV with O2.", next: "step5_vent_steps" },
+        { id: "b", text: "Start chest compressions — HR is low.", next: "step5_compressions_early" }
+      ]
+    },
+    {
+      id: "step5_compressions_early",
+      outcome: { type: "bad", label: "NOT YET — HR MUST BE BELOW 60 FOR COMPRESSIONS", text: "Neonatal chest compressions begin when HR is below 60 despite adequate PPV. At HR 82, take ventilation corrective steps first — reposition, re-seal, increase pressure. Compressions at HR <60." },
+      prompt: "Take ventilation corrective steps. HR improves to 95.",
+      choices: [
+        { id: "a", text: "HR improving. Continue PPV. Arrive at hospital.", next: "step5_vent_steps" }
+      ]
+    },
+    {
+      id: "step5_vent_steps",
+      outcome: { type: "good", label: "VENTILATION CORRECTIVE STEPS TAKEN", text: "Repositioned airway, re-checked mask seal, increased ventilation pressure. HR improving to 95 bpm. Continue PPV. SpO2 improving.", vitals: "Newborn HR: 95 rising | SpO2 improving | PPV ongoing" },
+      prompt: "Arriving at hospital. 5-minute APGAR — HR 110, weak cry, some flexion, pink body blue extremities, grimace. What is the APGAR score?",
+      choices: [
+        { id: "a", text: "APGAR 6 — Pulse 2, Grimace 1, Activity 1, Respirations 1, Appearance 1.", next: "step6_end" },
+        { id: "b", text: "APGAR 8.", next: "step6_apgar_high" }
+      ]
+    },
+    {
+      id: "step6_apgar_high",
+      outcome: { type: "neutral", label: "RECOUNT", text: "Weak cry=1, some flexion=1, pink body blue extremities=1, grimace=1, HR>100=2. Total = 6. Not 8. Blue extremities and weak cry each cost a point." },
+      prompt: "APGAR 6. Arriving at OB team. Handoff.",
+      choices: [
+        { id: "a", text: "Hand off to OB team with full report.", next: "step6_end" }
+      ]
+    },
+    {
+      id: "step6_end",
+      outcome: { type: "good", label: "SCENARIO COMPLETE", text: "Great work under difficult circumstances. Breech recognized, dangerous interventions avoided, airway space technique used correctly, correct newborn resuscitation sequence, ventilation corrective steps taken. Both mom and baby handed off to OB team.", vitals: "Mom stable | Newborn HR 110 | APGAR 6 improving | OB team taking over" },
+      end: true
+    }
+  ]
+}
+
+};
+
+// ═══════════════════════════════════════════════════════════════
+// ENGINE
+// ═══════════════════════════════════════════════════════════════
+
+let currentScenario = null;
+let currentStepId = null;
+let scoreData = { correct: 0, wrong: 0, critFails: 0, decisions: [] };
+let instructorVisible = false;
+
+function loadScenario(key) {
+  document.querySelectorAll('.scenario-btn').forEach(b => b.classList.remove('active'));
+  event.currentTarget.classList.add('active');
+
+  currentScenario = scenarios[key];
+  currentStepId = currentScenario.steps[0].id;
+  scoreData = { correct: 0, wrong: 0, critFails: 0, decisions: [] };
+
+  renderScenario();
+}
+
+function renderScenario() {
+  const s = currentScenario;
+  const v = s.vitals;
+
+  const warnBP = parseInt(v.bp) < 90;
+  const critHR = v.hr === '---' || parseInt(v.hr) < 40 || parseInt(v.hr) > 160;
+  const critSpo2 = v.spo2 === '---' || parseInt(v.spo2) < 90;
+
+  const main = document.getElementById('main');
+  main.innerHTML = `
+    <div class="dispatch">
+      <div class="dispatch-label">&#9632; DISPATCH</div>
+      <div class="dispatch-text">${s.dispatch}</div>
+    </div>
+
+    <div class="vitals-strip">
+      <div class="vital">
+        <span class="vital-label">BP</span>
+        <span class="vital-value ${warnBP ? 'warn' : ''}">${v.bp}</span>
+      </div>
+      <div class="vital">
+        <span class="vital-label">HR</span>
+        <span class="vital-value ${critHR ? 'crit' : ''}">${v.hr}</span>
+      </div>
+      <div class="vital">
+        <span class="vital-label">RR</span>
+        <span class="vital-value">${v.rr}</span>
+      </div>
+      <div class="vital">
+        <span class="vital-label">SpO2</span>
+        <span class="vital-value ${critSpo2 ? 'crit' : ''}">${v.spo2}</span>
+      </div>
+      <div class="vital">
+        <span class="vital-label">GCS</span>
+        <span class="vital-value">${v.gcs}</span>
+      </div>
+    </div>
+
+    <div class="scenario-content">
+      <div class="scene-title">${s.title}</div>
+      <div class="scene-sub">${s.sub}</div>
+
+      <div class="patient-card">
+        <div class="patient-info">
+          <strong>Age:</strong> ${s.patient.age}<br>
+          <strong>Sex:</strong> ${s.patient.sex}<br>
+          <strong>Weight:</strong> ${s.patient.weight}<br>
+          <strong>PMH:</strong> ${s.patient.pmh}
+        </div>
+        <div class="patient-info">
+          <strong>Medications:</strong> ${s.patient.meds}<br>
+          <strong>Allergies:</strong> ${s.patient.allergies}
+        </div>
+      </div>
+
+      <div class="situation">
+        <div class="situation-label">&#9679; ON SCENE</div>
+        ${s.situation}
+      </div>
+
+      <div id="decision-area"></div>
+
+      <div id="score-area"></div>
+    </div>
+  `;
+
+  renderStep(currentStepId);
+}
+
+function findStep(id) {
+  return currentScenario.steps.find(s => s.id === id);
+}
+
+function renderStep(stepId) {
+  const step = findStep(stepId);
+  if (!step) return;
+
+  const area = document.getElementById('decision-area');
+
+  if (step.critFail) {
+    const existing = area.innerHTML;
+    area.innerHTML = existing + `
+      <div class="crit-fail">&#9888; CRITICAL FAIL — AUTOMATIC FAILURE &#9888;</div>
+      <div class="outcome bad">
+        <div class="outcome-label">${step.outcome.label}</div>
+        ${step.outcome.text}
+      </div>
+    `;
+    scoreData.critFails++;
+    scoreData.decisions.push({ type: 'crit', label: step.outcome.label });
+    showFinalScore(true);
+    return;
+  }
+
+  if (step.end) {
+    const existing = area.innerHTML;
+    area.innerHTML = existing + `
+      <div class="outcome good">
+        <div class="outcome-label">${step.outcome.label}</div>
+        ${step.outcome.text}
+        ${step.outcome.vitals ? `<div class="outcome-vitals">&#128201; ${step.outcome.vitals}</div>` : ''}
+      </div>
+    `;
+    showFinalScore(false);
+    return;
+  }
+
+  let html = area.innerHTML;
+
+  if (step.outcome) {
+    html += `
+      <div class="outcome ${step.outcome.type}">
+        <div class="outcome-label">${step.outcome.label}</div>
+        ${step.outcome.text}
+        ${step.outcome.vitals ? `<div class="outcome-vitals">&#128201; ${step.outcome.vitals}</div>` : ''}
+      </div>
+    `;
+  }
+
+  if (step.prompt) {
+    const letters = ['A','B','C','D'];
+    html += `
+      <div class="decision-point">
+        <div class="decision-label">&#9650; DECISION POINT</div>
+        <p style="margin-bottom:12px; font-size:0.9rem;">${step.prompt}</p>
+        <div class="choices">
+          ${step.choices.map((c, i) => `
+            <button class="choice-btn" onclick="makeChoice('${c.next}', '${c.id}', '${step.id}')">
+              <span class="choice-letter">${letters[i]}</span>
+              ${c.text}
+            </button>
+          `).join('')}
+        </div>
+      </div>
+    `;
+  }
+
+  area.innerHTML = html;
+
+  area.scrollIntoView({ behavior: 'smooth', block: 'end' });
+}
+
+function makeChoice(nextId, choiceId, fromStepId) {
+  // Disable all choice buttons in current decision point
+  document.querySelectorAll('.choice-btn').forEach(b => b.disabled = true);
+
+  const nextStep = findStep(nextId);
+  if (!nextStep) return;
+
+  // Track scoring
+  if (nextStep.outcome) {
+    if (nextStep.outcome.type === 'good') scoreData.correct++;
+    else if (nextStep.outcome.type === 'bad') scoreData.wrong++;
+    scoreData.decisions.push({ type: nextStep.outcome.type, label: nextStep.outcome.label });
+  }
+
+  currentStepId = nextId;
+
+  setTimeout(() => {
+    renderStep(nextId);
+    window.scrollTo({ top: document.body.scrollHeight, behavior: 'smooth' });
+  }, 200);
+}
+
+function showFinalScore(isCritFail) {
+  const area = document.getElementById('score-area');
+  const total = scoreData.correct + scoreData.wrong;
+  const pct = total > 0 ? Math.round((scoreData.correct / total) * 100) : 0;
+
+  let grade = 'PASS';
+  let gradeColor = 'var(--green)';
+  if (isCritFail || scoreData.critFails > 0) {
+    grade = 'FAIL — CRITICAL CRITERIA';
+    gradeColor = 'var(--red)';
+  } else if (pct < 70) {
+    grade = 'NEEDS IMPROVEMENT';
+    gradeColor = 'var(--warn)';
+  }
+
+  area.innerHTML = `
+    <div class="score-board" style="margin-top:20px;">
+      <div class="score-title">&#9632; SCENARIO SUMMARY</div>
+      <div class="score-item"><span>Overall Grade</span><span style="color:${gradeColor}; font-weight:bold;">${grade}</span></div>
+      <div class="score-item"><span>Correct Decisions</span><span>${scoreData.correct}</span></div>
+      <div class="score-item"><span>Incorrect Decisions</span><span>${scoreData.wrong}</span></div>
+      <div class="score-item"><span>Critical Fails</span><span style="color:var(--red)">${scoreData.critFails}</span></div>
+    </div>
+    <div style="margin-top:12px;">
+      <button class="btn btn-red" onclick="resetScenario()">RUN AGAIN</button>
+      <button class="btn btn-outline" onclick="document.querySelector('.sidebar').scrollIntoView()">PICK NEW SCENARIO</button>
+    </div>
+  `;
+}
+
+function resetScenario() {
+  const key = Object.keys(scenarios).find(k => scenarios[k] === currentScenario);
+  if (key) loadScenario(key);
+}
+</script>
+</body>
+</html>
